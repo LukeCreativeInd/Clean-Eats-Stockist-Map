@@ -16,6 +16,15 @@ function distanceKm(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
+// Use a custom red marker
+const markerEl = document.createElement('div');
+markerEl.className = 'custom-marker';
+
+const marker = new maplibregl.Marker({ element: markerEl })
+  .setLngLat([lng, lat])
+  .addTo(map);
+
+
 (async function init() {
   map = new maplibregl.Map({
     container: 'map',
