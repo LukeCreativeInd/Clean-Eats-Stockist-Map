@@ -81,12 +81,7 @@ function fitToCoords(coords) {
     (b, [lng, lat]) => b.extend([lng, lat]),
     new maplibregl.LngLatBounds(coords[0], coords[0])
   );
-  map.fitBounds(bounds, { padding: 40, duration: 200 });
-  setTimeout(() => {
-    if (map.getZoom() < MIN_FIT_ZOOM) {
-      map.easeTo({ zoom: MIN_FIT_ZOOM, duration: 100 });
-    }
-  }, 220);
+  map.fitBounds(bounds, { padding: 40, duration: 200, maxZoom: 12 });
 }
 
 // Add one item to the sidebar
@@ -170,7 +165,14 @@ function addToStockistList(data) {
     stateSelect.appendChild(opt);
   });
 
-  if (allCoords.length) fitToCoords(allCoords);
+if (allCoords.length) {
+  if (map.isStyleLoaded()) {
+    fitToCoords(allCoords);
+  } else {
+    map.once('load', () => fitToCoords(allCoords));
+  }
+}
+
 
   setupFiltering();
   setupUseMyLocation();
