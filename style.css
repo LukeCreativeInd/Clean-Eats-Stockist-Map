@@ -1,4 +1,3 @@
-
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
@@ -6,20 +5,27 @@ body {
 }
 
 #container {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: 380px 1fr; /* wider sidebar */
+  gap: 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
+/* Sidebar */
 #stockist-list {
-  width: 320px;
+  width: 100%;
+  height: 820px; /* match map */
   background-color: #ffffff;
   box-shadow: 2px 0 6px rgba(0,0,0,0.05);
   display: flex;
   flex-direction: column;
   padding: 20px;
   box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid #eee;
 }
 
 #stockist-list h2 {
@@ -32,7 +38,7 @@ body {
 #stockist-list input,
 #stockist-list select {
   margin-bottom: 10px;
-  padding: 10px;
+  padding: 10px 12px;
   font-size: 14px;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -42,20 +48,44 @@ body {
   appearance: none;
 }
 
-#stockist-list button {
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   margin-bottom: 15px;
-  padding: 10px;
+}
+
+#use-location,
+#clear-filters {
+  padding: 10px 12px;
   font-size: 14px;
-  border: none;
   border-radius: 8px;
-  background-color: #007BFF;
-  color: white;
+  font-weight: 600;
+  border: none;
   cursor: pointer;
   transition: background 0.2s ease-in-out;
 }
 
-#stockist-list button:hover {
-  background-color: #0056b3;
+:root {
+  --brand: #CDEB25;
+}
+
+#use-location {
+  background-color: var(--brand);
+  color: #000;
+}
+
+#use-location:hover {
+  background-color: #b5d81f; /* darker green hover */
+}
+
+#clear-filters {
+  background-color: #e9eef3;
+  color: #222;
+}
+
+#clear-filters:hover {
+  background-color: #d6dde4;
 }
 
 #stockist-entries {
@@ -64,9 +94,9 @@ body {
 }
 
 #stockist-entries .stockist {
-  padding: 10px;
-  margin-bottom: 8px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
   border: 1px solid #eee;
   background-color: #fafafa;
   cursor: pointer;
@@ -77,8 +107,22 @@ body {
   background-color: #f1f1f1;
 }
 
+/* Map */
 #map {
   flex: 1;
-  height: 100%;
+  height: 820px; /* taller map */
+  border-radius: 12px;
+  background: #f4f6f8;
+  overflow: hidden;
 }
 
+/* If we ever want CSS-based markers again */
+.custom-marker {
+  width: 24px;
+  height: 24px;
+  background-color: var(--brand);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 3px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
