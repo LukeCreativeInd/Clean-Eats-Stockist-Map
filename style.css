@@ -81,3 +81,14 @@ body {
   flex: 1;
   height: 100%;
 }
+
+/* Add to style.css */
+.custom-marker {
+  width: 24px;
+  height: 24px;
+  background-color: #e63946; /* red */
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 3px rgba(0,0,0,0.4);
+  cursor: pointer;
+}
