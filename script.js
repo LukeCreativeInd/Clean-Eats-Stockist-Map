@@ -37,7 +37,25 @@ function distanceKm(lat1, lon1, lat2, lon2) {
     const lng = parseFloat(row.longitude);
     if (Number.isNaN(lat) || Number.isNaN(lng)) return;
 
-    const marker = new maplibregl.Marker().setLngLat([lng, lat]).addTo(map);
+    function createRedMarkerEl() {
+  const el = document.createElement('div');
+  el.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="28" height="28">
+      <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 6.41 11.38 7.05 11.98a1.4 1.4 0 0 0 1.9 0C13.59 21.38 20 15.25 20 10c0-4.42-3.58-8-8-8z" fill="#e63946"/>
+      <circle cx="12" cy="10" r="3.2" fill="#ffffff"/>
+    </svg>
+  `;
+  // position like MapLibre’s default marker
+  el.style.transform = 'translate(-50%, -100%)';
+  el.style.cursor = 'pointer';
+  return el;
+}
+
+// use it:
+const marker = new maplibregl.Marker({ element: createRedMarkerEl() })
+  .setLngLat([lng, lat])
+  .addTo(map);
+
 
     const html = `
       <strong>${escapeHtml(row.name)}</strong><br/>
