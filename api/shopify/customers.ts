@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import getRawBody from 'raw-body';
 import { supabaseAdmin } from '../../lib/supabase.js';
 import { verifyShopifyHmac } from '../../lib/hmac.js';
+import { geocodeNominatim } from '../../lib/geocode.js';
 
 type ShopifyCustomer = {
   id: number | string;
@@ -30,13 +31,26 @@ function nameFrom(c: ShopifyCustomer) {
   return c.company?.trim() || (parts.length ? parts.join(' ') : 'Unnamed');
 }
 
+function buildAddressString(r: {
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postcode?: string | null;
+  country?: string | null;
+}) {
+  return [r.address1, r.address2, r.city, r.province, r.postcode, r.country || 'Australia']
+    .filter(Boolean)
+    .join(', ');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
   const secret = process.env.SHOPIFY_WEBHOOK_SECRET;
   if (!secret) return res.status(500).send('Server not configured');
 
-  // Get raw body for HMAC validation
+  // HMAC verify using raw body
   const raw = await getRawBody(req);
   const hmacHeader = req.headers['x-shopify-hmac-sha256'];
   const ok = verifyShopifyHmac(raw, hmacHeader, secret);
@@ -59,7 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const nomap = tags.toLowerCase().includes('nomap');
 
   // Load existing to detect address change
-  const { data: existing } = await supabaseAdmin.from('stockists').select('address1,address2,city,province,postcode,country').eq('id', id).maybeSingle();
+  const { data: existing } = await supabaseAdmin
+    .from('stockists')
+    .select('address1,address2,city,province,postcode,country')
+    .eq('id', id)
+    .maybeSingle();
 
   const incoming = {
     address1: addr.address1 || null,
@@ -79,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     existing.postcode !== incoming.postcode ||
     existing.country !== incoming.country;
 
+  // Prepare base upsert
   const upsert: any = {
     id,
     name: nameFrom(c),
@@ -89,10 +108,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     is_active: !nomap
   };
 
-  // if address changed, clear lat/lng to trigger re-geocode
-  if (addressChanged) {
-    upsert.latitude = null;
-    upsert.longitude = null;
+  // If active and address changed (or new), attempt one-time geocode now
+  if (!nomap && addressChanged) {
+    const full = buildAddressString(incoming);
+    let coords = full ? await geocodeNominatim(full) : null;
+
+    // Fallback to AU postcode centroid
+    if (!coords && incoming.postcode) {
+      coords = await geocodeNominatim(`Australia ${incoming.postcode}`);
+    }
+
+    if (coords) {
+      upsert.latitude = coords.lat;
+      upsert.longitude = coords.lng;
+    } else {
+      // leave nulls if geocode failed; can retry later via manual endpoint if desired
+      upsert.latitude = null;
+      upsert.longitude = null;
+    }
   }
 
   await supabaseAdmin.from('stockists').upsert(upsert);
