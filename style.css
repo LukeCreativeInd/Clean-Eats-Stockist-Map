@@ -1,0 +1,83 @@
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #f8f9fa;
+}
+
+#container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+#stockist-list {
+  width: 320px;
+  background-color: #ffffff;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#stockist-list h2 {
+  margin-top: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+#stockist-list input,
+#stockist-list select {
+  margin-bottom: 10px;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  appearance: none;
+}
+
+#stockist-list button {
+  margin-bottom: 15px;
+  padding: 10px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007BFF;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#stockist-list button:hover {
+  background-color: #0056b3;
+}
+
+#stockist-entries {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+#stockist-entries .stockist {
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border: 1px solid #eee;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+
+#stockist-entries .stockist:hover {
+  background-color: #f1f1f1;
+}
+
+#map {
+  flex: 1;
+  height: 100%;
+}
