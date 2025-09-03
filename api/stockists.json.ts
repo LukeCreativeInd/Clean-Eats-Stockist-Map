@@ -20,3 +20,4 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate'); // edge cache 5 min
   return res.status(200).json(data ?? []);
 }
+ 
