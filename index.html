@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Stockist Map</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
   <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
-    /* small tweak so the maplibre canvas fills #map */
     #map > .maplibregl-map { width:100%; height:100%; }
   </style>
 </head>
@@ -16,10 +15,16 @@
   <div id="container">
     <div id="stockist-list">
       <h2>Find A Stockist</h2>
+
       <input type="text" id="search-name" placeholder="Search by name..." />
       <input type="text" id="search-postcode" placeholder="Search by postcode..." />
       <select id="state-select"></select>
-      <button id="clear-filters">Clear Filters</button>
+
+      <div class="btn-row">
+        <button id="use-location" title="Show stockists near me">Use my location</button>
+        <button id="clear-filters" class="secondary">Clear Filters</button>
+      </div>
+
       <div id="stockist-entries"></div>
     </div>
     <div id="map"></div>
