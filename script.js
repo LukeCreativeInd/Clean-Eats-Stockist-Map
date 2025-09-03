@@ -136,7 +136,7 @@ function setupFiltering() {
         (b, [lng, lat]) => b.extend([lng, lat]),
         new maplibregl.LngLatBounds(coords[0], coords[0])
       );
-      map.fitBounds(bounds, { padding: 40, duration: 200 });
+      map.fitBounds(bounds, { padding: 40, duration: 200, maxZoom: 10 });
     }
   };
 
