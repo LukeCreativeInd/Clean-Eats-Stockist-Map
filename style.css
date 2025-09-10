@@ -183,3 +183,31 @@ body {
   }
 }
 
+/* Put map first when stacked */
+@media (max-width: 1024px) {
+  #container { grid-template-columns: 1fr; }
+  #map { order: -1; }
+}
+
+/* Cap list height on mobile so it never pushes the map off-screen */
+@media (max-width: 1024px) {
+  #stockist-list { height: auto; }
+  #stockist-entries {
+    max-height: 45vh;   /* about half the screen */
+    overflow: auto;
+  }
+}
+
+/* "Show more" button inside the list */
+#show-more {
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  background: #e9eef3;
+  color: #222;
+}
+
