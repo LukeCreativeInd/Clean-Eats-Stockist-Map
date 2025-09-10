@@ -128,3 +128,58 @@ body {
   box-shadow: 0 0 3px rgba(0,0,0,0.4);
   cursor: pointer;
 }
+
+/* ========= Responsive ========= */
+
+/* Tablet and down */
+@media (max-width: 1024px) {
+  #container {
+    grid-template-columns: 1fr; /* stack */
+    gap: 12px;
+    padding: 16px;
+  }
+
+  #stockist-list {
+    height: auto;          /* let content size it */
+    max-height: none;
+  }
+
+  #map {
+    height: auto;
+    aspect-ratio: 16 / 11; /* give the map a healthy block of space */
+    min-height: 420px;     /* fallback if aspect-ratio unsupported */
+  }
+}
+
+/* Small phones */
+@media (max-width: 600px) {
+  #stockist-list {
+    padding: 16px;
+  }
+
+  #stockist-list h2 {
+    font-size: 18px;
+  }
+
+  #stockist-list input,
+  #stockist-list select {
+    font-size: 16px;   /* friendlier tap targets */
+    padding: 12px 14px;
+  }
+
+  .btn-row {
+    grid-template-columns: 1fr; /* buttons stack */
+  }
+
+  #use-location,
+  #clear-filters {
+    font-size: 16px;
+    padding: 12px 14px;
+  }
+
+  #map {
+    aspect-ratio: 1 / 1;  /* taller map on narrow screens */
+    min-height: 440px;
+  }
+}
+
