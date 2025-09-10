@@ -1,13 +1,13 @@
 // ======= config =======
 const API_URL = '/api/stockists.json';  // change to absolute URL if embedding from another domain
-const RADIUS_KM_POSTCODE = 5;
-const RADIUS_KM_NEAR_ME = 10;
+const RADIUS_KM_POSTCODE = 5;           // fallback radius when a postcode search has no direct matches
+const RADIUS_KM_NEAR_ME = 10;           // radius for "Use my location"
 const BRAND_GREEN = '#CDEB25';
-const MOBILE_MAX_ITEMS = 10;
+const MOBILE_MAX_ITEMS = 10;            // show only first N items on mobile before "Show all"
 
 // ======= globals =======
 let map;
-let markers = [];
+let markers = []; // [{ marker, data: { name, city, state, postcode, country, lat, lng } }]
 let uniqueStates = new Set();
 let popup;
 
@@ -29,7 +29,9 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 }
 
 async function geocodePostcodeAU(postcode) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`Australia ${postcode}`)}&format=json&limit=1&countrycodes=au`;
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+    `Australia ${postcode}`
+  )}&format=json&limit=1&countrycodes=au`;
   const resp = await fetch(url);
   if (!resp.ok) return null;
   const data = await resp.json();
@@ -84,18 +86,13 @@ function fitToCoords(coords) {
   map.fitBounds(bounds, { padding: 40, duration: 200, maxZoom: 12 });
 }
 
-function kickParentResize() {
-  // Notify index.html to post the latest height to Shopify
-  window.dispatchEvent(new Event('maplibre-resize-kick'));
-}
-
-// Keep MapLibre sized correctly as layout changes
+// Keep MapLibre sized correctly as the layout changes (desktop → stacked)
 function installResizeHandlers() {
-  window.addEventListener('resize', () => { if (map) { map.resize(); kickParentResize(); } }, { passive: true });
+  window.addEventListener('resize', () => map && map.resize(), { passive: true });
 
   const container = document.getElementById('container');
   if (container && 'ResizeObserver' in window) {
-    const ro = new ResizeObserver(() => { if (map) { map.resize(); kickParentResize(); } });
+    const ro = new ResizeObserver(() => map && map.resize());
     ro.observe(container);
   }
 }
@@ -133,6 +130,7 @@ function addToStockistList(data) {
     zoom: 4
   });
 
+  // ensure proper sizing on layout changes
   installResizeHandlers();
 
   popup = new maplibregl.Popup({ closeButton: true, closeOnClick: false });
@@ -163,13 +161,17 @@ function addToStockistList(data) {
       popup.setLngLat([lng, lat]).setHTML(html).addTo(map);
     });
 
-    const item = { marker, data: { ...row, state, lat, lng } };
+    const item = {
+      marker,
+      data: { ...row, state, lat, lng }
+    };
     markers.push(item);
     addToStockistList({ ...row, state, lat, lng, marker });
 
     allCoords.push([lng, lat]);
   });
 
+  // state dropdown (guard if not present)
   const stateSelect = document.getElementById('state-select');
   if (stateSelect) {
     stateSelect.innerHTML = '<option value="">All States</option>';
@@ -181,17 +183,17 @@ function addToStockistList(data) {
     });
   }
 
+  // initial fit after style finishes loading
   if (allCoords.length) {
-    const runFit = () => { fitToCoords(allCoords); kickParentResize(); };
-    if (map.isStyleLoaded()) runFit();
-    else map.once('load', runFit);
+    if (map.isStyleLoaded()) {
+      fitToCoords(allCoords);
+    } else {
+      map.once('load', () => fitToCoords(allCoords));
+    }
   }
 
   setupFiltering();
   setupUseMyLocation();
-
-  // make sure the parent sizes correctly once tiles/fonts are fully ready
-  map.once('load', kickParentResize);
 })();
 
 // ================= filtering =================
@@ -222,7 +224,7 @@ function setupFiltering() {
       marker.getElement().style.display = isVisible ? '' : 'none';
     });
 
-    // postcode fallback (5km)
+    // postcode fallback (5km) if nothing matched
     if (postcodeVal && visible.length === 0) {
       const center = await geocodePostcodeAU(postcodeVal);
       if (center) {
@@ -258,6 +260,7 @@ function setupFiltering() {
         showMoreBtn = document.createElement('button');
         showMoreBtn.id = 'show-more';
         showMoreBtn.textContent = `Show all (${visible.length})`;
+        // append right after the list container
         const panel = document.getElementById('stockist-list');
         panel.appendChild(showMoreBtn);
       } else {
@@ -270,14 +273,12 @@ function setupFiltering() {
         showMoreBtn.style.display = 'none';
         const allCoords = visible.map(({ data }) => [data.lng, data.lat]);
         if (allCoords.length) fitToCoords(allCoords);
-        kickParentResize();
       };
     } else if (showMoreBtn) {
       showMoreBtn.style.display = 'none';
     }
 
     if (coords.length) fitToCoords(coords);
-    kickParentResize();
   };
 
   nameInput?.addEventListener('input', applyFilter);
@@ -290,58 +291,93 @@ function setupFiltering() {
     applyFilter();
   });
 
+  // reapply filter on orientation change / resize (helps keep list trimmed)
   window.addEventListener('resize', applyFilter, { passive: true });
 
   applyFilter();
 }
 
-// ================= "Use my location" =================
+// ================= "Use my location" (parent-first for iOS Safari) =================
+function getLocationViaParent() {
+  return new Promise((resolve, reject) => {
+    // Only if we are embedded
+    if (window.parent === window) {
+      reject(new Error('not-embedded'));
+      return;
+    }
+    const handler = (ev) => {
+      const d = ev.data || {};
+      if (d.type === 'geolocation-response') {
+        window.removeEventListener('message', handler);
+        if (d.ok && d.coords) resolve(d.coords);
+        else reject(new Error(d.error || 'denied'));
+      }
+    };
+    window.addEventListener('message', handler, { once: true });
+    // If you want to restrict, replace '*' with your parent origin
+    window.parent.postMessage({ type: 'request-geolocation' }, '*');
+  });
+}
+
 function setupUseMyLocation() {
   const btn = document.getElementById('use-location');
-  if (!btn || !navigator.geolocation) {
-    if (btn) btn.disabled = true;
-    return;
-  }
+  if (!btn) return;
 
   let myMarker;
 
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', async () => {
     btn.disabled = true;
+
+    // Try parent first (reliable on iOS Safari for cross-origin iframes)
+    try {
+      const coords = await getLocationViaParent();
+      applyNearby(coords.lat, coords.lng);
+      btn.disabled = false;
+      return;
+    } catch (_) {
+      // fall through to iframe-based geolocation
+    }
+
+    if (!navigator.geolocation) {
+      alert('Could not access your location.');
+      btn.disabled = false;
+      return;
+    }
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-
-        if (!myMarker) {
-          myMarker = new maplibregl.Marker({ element: createMyLocationEl() })
-            .setLngLat([lng, lat]).addTo(map);
-        } else {
-          myMarker.setLngLat([lng, lat]);
-        }
-
-        const nearby = markers.filter(({ data }) => distanceKm(lat, lng, data.lat, data.lng) <= RADIUS_KM_NEAR_ME);
-        markers.forEach(({ marker, data }) => {
-          const isVisible = nearby.some((v) => v.data === data);
-          marker.getElement().style.display = isVisible ? '' : 'none';
-        });
-
-        const listContainer = document.getElementById('stockist-entries');
-        listContainer.innerHTML = '';
-        const coords = [[lng, lat]];
-        nearby.forEach(({ marker, data }) => {
-          addToStockistList({ ...data, marker });
-          coords.push([data.lng, data.lat]);
-        });
-        if (coords.length) fitToCoords(coords);
-
+        applyNearby(pos.coords.latitude, pos.coords.longitude);
         btn.disabled = false;
-        kickParentResize();
       },
       () => {
-        btn.disabled = false;
         alert('Could not access your location.');
+        btn.disabled = false;
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });
+
+  function applyNearby(lat, lng) {
+    if (!myMarker) {
+      myMarker = new maplibregl.Marker({ element: createMyLocationEl() })
+        .setLngLat([lng, lat]).addTo(map);
+    } else {
+      myMarker.setLngLat([lng, lat]);
+    }
+
+    const nearby = markers.filter(({ data }) => distanceKm(lat, lng, data.lat, data.lng) <= RADIUS_KM_NEAR_ME);
+    markers.forEach(({ marker, data }) => {
+      const isVisible = nearby.some((v) => v.data === data);
+      marker.getElement().style.display = isVisible ? '' : 'none';
+    });
+
+    const listContainer = document.getElementById('stockist-entries');
+    listContainer.innerHTML = '';
+    const coords = [[lng, lat]];
+    nearby.forEach(({ marker, data }) => {
+      addToStockistList({ ...data, marker });
+      coords.push([data.lng, data.lat]);
+    });
+    if (coords.length) fitToCoords(coords);
+  }
 }
