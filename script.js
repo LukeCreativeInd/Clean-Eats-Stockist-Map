@@ -9,6 +9,8 @@ let map;
 let markers = []; // [{ marker, data: { name, city, state, postcode, country, lat, lng } }]
 let uniqueStates = new Set();
 let popup;
+const MOBILE_MAX_ITEMS = 10;
+const isMobile = () => window.matchMedia('(max-width: 1024px)').matches;
 
 // ---------- utils ----------
 function distanceKm(lat1, lon1, lat2, lon2) {
