@@ -185,3 +185,25 @@ body {
   background: #e9eef3;
   color: #222;
 }
+
+/* ... keep everything you already have above ... */
+
+/* ===== Desktop: fill the iframe (viewport) ===== */
+@media (min-width: 1200px) {
+  html, body { height: 100%; }
+  /* make the app's outer container consume the iframe height */
+  #container {
+    min-height: 100vh;
+    /* 20px top + 20px bottom padding on #container */
+  }
+  /* subtract the container's vertical padding so map/list align flush */
+  #map,
+  #stockist-list {
+    height: calc(100vh - 40px); /* fills the viewport inside the section */
+  }
+}
+
+/* ===== Tablet (unchanged from your current rules) ===== */
+@media (max-width: 1024px) {
+  /* your existing tablet/mobile styles remain as-is */
+}
