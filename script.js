@@ -1,13 +1,13 @@
 // ======= config =======
 const API_URL = '/api/stockists.json';  // change to absolute URL if embedding from another domain
-const RADIUS_KM_POSTCODE = 5;           // fallback radius when a postcode search has no direct matches
-const RADIUS_KM_NEAR_ME = 10;           // radius for "Use my location"
+const RADIUS_KM_POSTCODE = 5;
+const RADIUS_KM_NEAR_ME = 10;
 const BRAND_GREEN = '#CDEB25';
-const MOBILE_MAX_ITEMS = 10;            // show only first N items on mobile before "Show all"
+const MOBILE_MAX_ITEMS = 10;
 
 // ======= globals =======
 let map;
-let markers = []; // [{ marker, data: { name, city, state, postcode, country, lat, lng } }]
+let markers = [];
 let uniqueStates = new Set();
 let popup;
 
@@ -29,9 +29,7 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 }
 
 async function geocodePostcodeAU(postcode) {
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-    `Australia ${postcode}`
-  )}&format=json&limit=1&countrycodes=au`;
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(`Australia ${postcode}`)}&format=json&limit=1&countrycodes=au`;
   const resp = await fetch(url);
   if (!resp.ok) return null;
   const data = await resp.json();
@@ -86,13 +84,18 @@ function fitToCoords(coords) {
   map.fitBounds(bounds, { padding: 40, duration: 200, maxZoom: 12 });
 }
 
-// Keep MapLibre sized correctly as the layout changes (desktop → stacked)
+function kickParentResize() {
+  // Notify index.html to post the latest height to Shopify
+  window.dispatchEvent(new Event('maplibre-resize-kick'));
+}
+
+// Keep MapLibre sized correctly as layout changes
 function installResizeHandlers() {
-  window.addEventListener('resize', () => map && map.resize(), { passive: true });
+  window.addEventListener('resize', () => { if (map) { map.resize(); kickParentResize(); } }, { passive: true });
 
   const container = document.getElementById('container');
   if (container && 'ResizeObserver' in window) {
-    const ro = new ResizeObserver(() => map && map.resize());
+    const ro = new ResizeObserver(() => { if (map) { map.resize(); kickParentResize(); } });
     ro.observe(container);
   }
 }
@@ -130,7 +133,6 @@ function addToStockistList(data) {
     zoom: 4
   });
 
-  // ensure proper sizing on layout changes
   installResizeHandlers();
 
   popup = new maplibregl.Popup({ closeButton: true, closeOnClick: false });
@@ -161,17 +163,13 @@ function addToStockistList(data) {
       popup.setLngLat([lng, lat]).setHTML(html).addTo(map);
     });
 
-    const item = {
-      marker,
-      data: { ...row, state, lat, lng }
-    };
+    const item = { marker, data: { ...row, state, lat, lng } };
     markers.push(item);
     addToStockistList({ ...row, state, lat, lng, marker });
 
     allCoords.push([lng, lat]);
   });
 
-  // state dropdown (guard if not present)
   const stateSelect = document.getElementById('state-select');
   if (stateSelect) {
     stateSelect.innerHTML = '<option value="">All States</option>';
@@ -183,17 +181,17 @@ function addToStockistList(data) {
     });
   }
 
-  // initial fit after style finishes loading
   if (allCoords.length) {
-    if (map.isStyleLoaded()) {
-      fitToCoords(allCoords);
-    } else {
-      map.once('load', () => fitToCoords(allCoords));
-    }
+    const runFit = () => { fitToCoords(allCoords); kickParentResize(); };
+    if (map.isStyleLoaded()) runFit();
+    else map.once('load', runFit);
   }
 
   setupFiltering();
   setupUseMyLocation();
+
+  // make sure the parent sizes correctly once tiles/fonts are fully ready
+  map.once('load', kickParentResize);
 })();
 
 // ================= filtering =================
@@ -224,7 +222,7 @@ function setupFiltering() {
       marker.getElement().style.display = isVisible ? '' : 'none';
     });
 
-    // postcode fallback (5km) if nothing matched
+    // postcode fallback (5km)
     if (postcodeVal && visible.length === 0) {
       const center = await geocodePostcodeAU(postcodeVal);
       if (center) {
@@ -260,7 +258,6 @@ function setupFiltering() {
         showMoreBtn = document.createElement('button');
         showMoreBtn.id = 'show-more';
         showMoreBtn.textContent = `Show all (${visible.length})`;
-        // append right after the list container
         const panel = document.getElementById('stockist-list');
         panel.appendChild(showMoreBtn);
       } else {
@@ -273,12 +270,14 @@ function setupFiltering() {
         showMoreBtn.style.display = 'none';
         const allCoords = visible.map(({ data }) => [data.lng, data.lat]);
         if (allCoords.length) fitToCoords(allCoords);
+        kickParentResize();
       };
     } else if (showMoreBtn) {
       showMoreBtn.style.display = 'none';
     }
 
     if (coords.length) fitToCoords(coords);
+    kickParentResize();
   };
 
   nameInput?.addEventListener('input', applyFilter);
@@ -291,7 +290,6 @@ function setupFiltering() {
     applyFilter();
   });
 
-  // reapply filter on orientation change / resize (helps keep list trimmed)
   window.addEventListener('resize', applyFilter, { passive: true });
 
   applyFilter();
@@ -337,6 +335,7 @@ function setupUseMyLocation() {
         if (coords.length) fitToCoords(coords);
 
         btn.disabled = false;
+        kickParentResize();
       },
       () => {
         btn.disabled = false;
