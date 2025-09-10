@@ -3,16 +3,19 @@ const API_URL = '/api/stockists.json';  // change to absolute URL if embedding f
 const RADIUS_KM_POSTCODE = 5;           // fallback radius when a postcode search has no direct matches
 const RADIUS_KM_NEAR_ME = 10;           // radius for "Use my location"
 const BRAND_GREEN = '#CDEB25';
+const MOBILE_MAX_ITEMS = 10;            // show only first N items on mobile before "Show all"
 
 // ======= globals =======
 let map;
 let markers = []; // [{ marker, data: { name, city, state, postcode, country, lat, lng } }]
 let uniqueStates = new Set();
 let popup;
-const MOBILE_MAX_ITEMS = 10;
-const isMobile = () => window.matchMedia('(max-width: 1024px)').matches;
 
 // ---------- utils ----------
+function isMobile() {
+  return window.matchMedia('(max-width: 1024px)').matches;
+}
+
 function distanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -233,12 +236,48 @@ function setupFiltering() {
       }
     }
 
-    // list + fit
+    // list + fit (with mobile truncation)
     const coords = [];
-    visible.forEach(({ marker, data }) => {
+    const container = document.getElementById('stockist-entries');
+    container.innerHTML = '';
+
+    let renderItems = visible;
+    let truncated = false;
+    if (isMobile() && visible.length > MOBILE_MAX_ITEMS) {
+      renderItems = visible.slice(0, MOBILE_MAX_ITEMS);
+      truncated = true;
+    }
+
+    renderItems.forEach(({ marker, data }) => {
       addToStockistList({ ...data, marker });
       coords.push([data.lng, data.lat]);
     });
+
+    // "Show more" button for mobile if truncated
+    let showMoreBtn = document.getElementById('show-more');
+    if (truncated) {
+      if (!showMoreBtn) {
+        showMoreBtn = document.createElement('button');
+        showMoreBtn.id = 'show-more';
+        showMoreBtn.textContent = `Show all (${visible.length})`;
+        // append right after the list container
+        const panel = document.getElementById('stockist-list');
+        panel.appendChild(showMoreBtn);
+      } else {
+        showMoreBtn.style.display = '';
+        showMoreBtn.textContent = `Show all (${visible.length})`;
+      }
+      showMoreBtn.onclick = () => {
+        container.innerHTML = '';
+        visible.forEach(({ marker, data }) => addToStockistList({ ...data, marker }));
+        showMoreBtn.style.display = 'none';
+        const allCoords = visible.map(({ data }) => [data.lng, data.lat]);
+        if (allCoords.length) fitToCoords(allCoords);
+      };
+    } else if (showMoreBtn) {
+      showMoreBtn.style.display = 'none';
+    }
+
     if (coords.length) fitToCoords(coords);
   };
 
@@ -251,6 +290,9 @@ function setupFiltering() {
     if (stateSelect) stateSelect.value = '';
     applyFilter();
   });
+
+  // reapply filter on orientation change / resize (helps keep list trimmed)
+  window.addEventListener('resize', applyFilter, { passive: true });
 
   applyFilter();
 }
