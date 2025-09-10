@@ -10,16 +10,17 @@ body {
   grid-template-columns: 380px 1fr; /* sidebar + map */
   gap: 16px;
   width: 100%;
-  max-width: none;      /* was 1400px: remove cap so it fills the iframe */
-  margin: 0;            /* remove centering margin */
-  padding: 20px;        /* keep some breathing room */
+  max-width: none;
+  margin: 0;
+  padding: 20px;
   box-sizing: border-box;
 }
 
 /* Sidebar */
 #stockist-list {
   width: 100%;
-  height: clamp(560px, 70vh, 900px);
+  /* was clamp(560px, 70vh, 900px) — felt too short on large screens */
+  height: clamp(680px, 78vh, 1100px);
   background-color: #ffffff;
   box-shadow: 2px 0 6px rgba(0,0,0,0.05);
   display: flex;
@@ -68,27 +69,21 @@ body {
   transition: background 0.2s ease-in-out;
 }
 
-:root {
-  --brand: #CDEB25;
-}
+:root { --brand: #CDEB25; }
 
 #use-location {
   background-color: var(--brand);
   color: #000;
 }
 
-#use-location:hover {
-  background-color: #b5d81f; /* darker green hover */
-}
+#use-location:hover { background-color: #b5d81f; }
 
 #clear-filters {
   background-color: #e9eef3;
   color: #222;
 }
 
-#clear-filters:hover {
-  background-color: #d6dde4;
-}
+#clear-filters:hover { background-color: #d6dde4; }
 
 #stockist-entries {
   overflow-y: auto;
@@ -105,28 +100,16 @@ body {
   transition: background 0.2s ease-in-out;
 }
 
-#stockist-entries .stockist:hover {
-  background-color: #f1f1f1;
-}
+#stockist-entries .stockist:hover { background-color: #f1f1f1; }
 
 /* Map + sidebar should both fill the available height */
 #map {
   width: 100%;
-  height: clamp(560px, 70vh, 900px);
+  /* was clamp(560px, 70vh, 900px) */
+  height: clamp(680px, 78vh, 1100px);
   border-radius: 12px;
   background: #f4f6f8;
   overflow: hidden;
-}
-
-/* If we ever want CSS-based markers again */
-.custom-marker {
-  width: 24px;
-  height: 24px;
-  background-color: var(--brand);
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 3px rgba(0,0,0,0.4);
-  cursor: pointer;
 }
 
 /* ========= Responsive ========= */
@@ -145,32 +128,25 @@ body {
   }
 
   #map {
-    height: auto;
-    aspect-ratio: 4 / 5;
-    min-height: 360px;  
+    /* rely on aspect ratio for a clean, predictable height on tablets */
+    aspect-ratio: 16 / 9;
+    min-height: 420px;
     height: auto;
   }
 }
 
 /* Small phones */
 @media (max-width: 600px) {
-  #stockist-list {
-    padding: 16px;
-  }
-
-  #stockist-list h2 {
-    font-size: 18px;
-  }
+  #stockist-list { padding: 16px; }
+  #stockist-list h2 { font-size: 18px; }
 
   #stockist-list input,
   #stockist-list select {
-    font-size: 16px;   /* friendlier tap targets */
+    font-size: 16px;
     padding: 12px 14px;
   }
 
-  .btn-row {
-    grid-template-columns: 1fr; /* buttons stack */
-  }
+  .btn-row { grid-template-columns: 1fr; }
 
   #use-location,
   #clear-filters {
@@ -179,22 +155,20 @@ body {
   }
 
   #map {
-    aspect-ratio: 3 / 4; 
-    min-height: 320px;
+    aspect-ratio: 3 / 4;
+    min-height: 360px;
   }
 }
 
 /* Put map first when stacked */
 @media (max-width: 1024px) {
-  #container { grid-template-columns: 1fr; }
   #map { order: -1; }
 }
 
 /* Cap list height on mobile so it never pushes the map off-screen */
 @media (max-width: 1024px) {
-  #stockist-list { height: auto; }
   #stockist-entries {
-    max-height: 45vh;   /* about half the screen */
+    max-height: 45vh;
     overflow: auto;
   }
 }
@@ -211,4 +185,3 @@ body {
   background: #e9eef3;
   color: #222;
 }
-
