@@ -32,5 +32,27 @@
 
   <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
   <script src="script.js"></script>
+  <script>
+  (function () {
+    // Replace with your actual Shopify domain if you want to restrict:
+    const PARENT_ORIGIN = "*"; // e.g. "https://wholesale.cleaneatsaustralia.com.au"
+
+    function postHeight() {
+      const h = document.documentElement.scrollHeight; // or container.offsetHeight
+      parent.postMessage({ type: "stockist-map-height", height: h }, PARENT_ORIGIN);
+    }
+
+    // Post on load & on resize
+    window.addEventListener("load", postHeight);
+    window.addEventListener("resize", () => requestAnimationFrame(postHeight));
+
+    // Observe layout/content changes (list expands, filters, map resize)
+    const ro = new ResizeObserver(() => requestAnimationFrame(postHeight));
+    ro.observe(document.body);
+
+    // If you have a map instance named `map`, keep this too:
+    window.addEventListener("maplibre-resize-kick", postHeight);
+  })();
+</script>
 </body>
 </html>
