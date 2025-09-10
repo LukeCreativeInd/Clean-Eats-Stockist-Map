@@ -9,6 +9,7 @@
   <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
   <style>
     #map > .maplibregl-map { width:100%; height:100%; }
+    html, body { height: auto; }
   </style>
 </head>
 <body>
@@ -34,25 +35,29 @@
   <script src="script.js"></script>
   <script>
   (function () {
-    // Replace with your actual Shopify domain if you want to restrict:
-    const PARENT_ORIGIN = "*"; // e.g. "https://wholesale.cleaneatsaustralia.com.au"
+    const PARENT_ORIGIN = "*"; // or set your exact origin if you prefer
+    const container = document.getElementById('container');
 
     function postHeight() {
-      const h = document.documentElement.scrollHeight; // or container.offsetHeight
+      const h = Math.ceil((container?.getBoundingClientRect().height) || document.documentElement.scrollHeight);
       parent.postMessage({ type: "stockist-map-height", height: h }, PARENT_ORIGIN);
     }
 
     // Post on load & on resize
     window.addEventListener("load", postHeight);
-    window.addEventListener("resize", () => requestAnimationFrame(postHeight));
+    window.addEventListener("resize", () => requestAnimationFrame(postHeight), { passive: true });
 
     // Observe layout/content changes (list expands, filters, map resize)
-    const ro = new ResizeObserver(() => requestAnimationFrame(postHeight));
-    ro.observe(document.body);
+    if ('ResizeObserver' in window && container) {
+      const ro = new ResizeObserver(() => requestAnimationFrame(postHeight));
+      ro.observe(container);
+      const list = document.getElementById('stockist-entries');
+      if (list) ro.observe(list);
+    }
 
-    // If you have a map instance named `map`, keep this too:
+    // script.js will dispatch this event at key moments (map load, filter changes)
     window.addEventListener("maplibre-resize-kick", postHeight);
   })();
-</script>
+  </script>
 </body>
 </html>
