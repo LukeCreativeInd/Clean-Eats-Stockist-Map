@@ -19,7 +19,7 @@ body {
 /* Sidebar */
 #stockist-list {
   width: 100%;
-  height: 820px; /* match map */
+  height: clamp(560px, 70vh, 900px);
   background-color: #ffffff;
   box-shadow: 2px 0 6px rgba(0,0,0,0.05);
   display: flex;
@@ -112,7 +112,7 @@ body {
 /* Map + sidebar should both fill the available height */
 #map {
   width: 100%;
-  height: 820px;        /* keep your taller map */
+  height: clamp(560px, 70vh, 900px);
   border-radius: 12px;
   background: #f4f6f8;
   overflow: hidden;
@@ -146,8 +146,9 @@ body {
 
   #map {
     height: auto;
-    aspect-ratio: 16 / 11; /* give the map a healthy block of space */
-    min-height: 420px;     /* fallback if aspect-ratio unsupported */
+    aspect-ratio: 4 / 5;
+    min-height: 360px;  
+    height: auto;
   }
 }
 
@@ -178,8 +179,8 @@ body {
   }
 
   #map {
-    aspect-ratio: 1 / 1;  /* taller map on narrow screens */
-    min-height: 440px;
+    aspect-ratio: 3 / 4; 
+    min-height: 320px;
   }
 }
 
