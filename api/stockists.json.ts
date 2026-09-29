@@ -8,6 +8,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false }
 });
 
+function hasNoMapTag(tags: unknown) {
+  const values = Array.isArray(tags) ? tags : String(tags || '').split(',');
+  return values.some((tag) => String(tag).trim().toLowerCase() === 'nomap');
+}
+
 function setPublicHeaders(res: VercelResponse) {
   // This endpoint intentionally contains public map data only and is consumed
   // by the Clean Eats Shopify theme without credentials.
@@ -33,8 +38,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data, error } = await supabase
     .from('stockists')
-    // Do not expose customer email, phone, tags, internal IDs or timestamps.
-    .select('name,address1,address2,city,province,postcode,country,latitude,longitude')
+    // Tags are read only to enforce nomap. They are removed before the response.
+    .select('name,address1,address2,city,province,postcode,country,latitude,longitude,tags')
     .eq('is_active', true)
     .not('latitude', 'is', null)
     .not('longitude', 'is', null);
@@ -46,5 +51,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
-  res.status(200).json(data ?? []);
+  const publicRows = (data ?? [])
+    .filter((row) => !hasNoMapTag(row.tags))
+    .map(({ tags: _tags, ...publicRow }) => publicRow);
+  res.status(200).json(publicRows);
 }

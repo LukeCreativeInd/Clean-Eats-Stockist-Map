@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     for (const c of customers) {
       const tags = (c.tags || '').toString();
-      const nomap = tags.toLowerCase().includes('nomap');
+      const nomap = tags.split(',').some((tag: string) => tag.trim().toLowerCase() === 'nomap');
       const a = c.default_address || {};
 
       const upsert: any = {
