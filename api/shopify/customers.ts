@@ -66,20 +66,22 @@ function toTagList(tags: unknown): string[] {
   if (typeof tags === 'string') return tags.split(',').map((t) => t.trim()).filter(Boolean);
   return [];
 }
-async function fetchCustomerTagsFromAdmin(id: number | string): Promise<string[]> {
+async function fetchCustomerTagsFromAdmin(id: number | string): Promise<string[] | null> {
   const url = `https://${SHOP}/admin/api/2024-10/customers/${id}.json`;
-  const resp = await fetch(url, {
-    headers: {
-      'X-Shopify-Access-Token': ADMIN_TOKEN,
-      'Content-Type': 'application/json'
-    }
-  });
-  if (!resp.ok) {
-    // if this fails for any reason, fall back to empty list
-    return [];
+  try {
+    const resp = await fetch(url, {
+      headers: {
+        'X-Shopify-Access-Token': ADMIN_TOKEN,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    return toTagList(json?.customer?.tags);
+  } catch (error) {
+    console.error('[shopify/customers] Customer tag lookup failed', error);
+    return null;
   }
-  const json = await resp.json();
-  return toTagList(json?.customer?.tags);
 }
 
 // ---- handler ----
@@ -118,7 +120,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const id = idAsIs(c.id);
 
   // Authoritative tags from Admin API (robust against webhook payload quirks)
-  const liveTags = await fetchCustomerTagsFromAdmin(c.id);
+  const adminTags = await fetchCustomerTagsFromAdmin(c.id);
+  const liveTags = adminTags ?? toTagList(c.tags);
   const nomap = liveTags.some((t) => t.toLowerCase() === 'nomap');
   const tagsStr = liveTags.join(', '); // how we store it in Supabase
 
